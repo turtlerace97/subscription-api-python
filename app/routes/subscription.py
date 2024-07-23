@@ -13,5 +13,7 @@ async def create(db: AsyncIOMotorClient = Depends(get_db)):
 @router.get("/test")
 async def getAll(db: AsyncIOMotorClient = Depends(get_db)):
     cursor = db['video']['subscriptions'].find({})
+    cursor2 = db['video']['subscriptions'].find_one({})
+    print('cursor2',cursor2)
     for document in await cursor.to_list(length=100):
         print(document)
