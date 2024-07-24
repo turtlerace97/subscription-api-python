@@ -1,16 +1,19 @@
 from datetime import datetime
+import logging
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient
+
 
 class SubscriptionService:
     def __init__(self, db: AsyncIOMotorClient):
         self.db : AsyncIOMotorClient = db
 
-    async def create_subscription(self, data: dict) -> None:
-        await self.db['subscriptions'].insert_one(data)
+    async def create_subscription(self, data: dict):
+        result = await self.db['subscriptions'].insert_one(data)
+        return result.inserted_id
 
     async def get_all_subscriptions(self, filter : dict, order : dict, limit : int = 10, offset : int = 0):
-        cursor = self.db['subscriptions'].find().limit(limit=limit).skip(offset)
+        cursor = self.db['subscriptions'].find(filter).limit(limit=limit).skip(offset)
         if order and order != {}:
             cursor.sort(order)
         
@@ -35,6 +38,19 @@ class SubscriptionService:
             update=update
         )
         return result
+    
+    async def update_one(self, filter : dict, update : dict):
+        print(filter)
+        print(update)
+
+        if filter is None or filter == {}:
+            return
+        
+        if update is None or update == {}:
+            return
+    
+        await self.db["subscriptions"].find_one_and_update(filter, update)
+        
 
     
     async def get_long_term_subscribers(self, match_stage: dict, count=10):
