@@ -18,8 +18,24 @@ class SubscriptionService:
         result = convert_objectid(result)  
         return result    
     
-    async def update_subscriptions(self, filter):
-        self.db['video']['subscriptions'].find_one_and_update(filter=filter)
+    async def update_canceled_date(self, filter):
+        current_date = datetime.utcnow()
+
+        if filter is None or filter == {}:
+            return
+
+        update = {
+            "$set": {
+                "canceled_date": current_date
+            }
+        }
+        
+        result = self.db['subscriptions'].find_one_and_update(
+            filter=filter,
+            update=update
+        )
+        return result
+
     
     async def get_long_term_subscribers(self, match_stage: dict, count=10):
         current_date = datetime.utcnow()
@@ -48,7 +64,8 @@ class SubscriptionService:
                 }
             }
         ]
-        cursor = self.db['video']['subscriptions'].aggregate(pipeline)
+
+        cursor = self.db['subscriptions'].aggregate(pipeline)
         result = await cursor.to_list(length=count)
         result = convert_objectid(result)
         return result
