@@ -2,3 +2,4 @@ python-dotenv
 fastapi
 motor
 pydantic
+gunicorn
