@@ -9,7 +9,7 @@ from app.database.conn import close_db_connection, connect_to_db
 from app.routes import subscription
 
 
-templates = Jinja2Templates(directory="static")
+templates = Jinja2Templates(directory="templates")
 
 app = FastAPI()
 
