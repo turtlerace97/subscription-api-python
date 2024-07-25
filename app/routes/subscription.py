@@ -19,6 +19,10 @@ router = APIRouter()
 def get_video_service(db: AsyncIOMotorClient = Depends(get_db)):
     return SubscriptionService(db)
 
+@router.get("health")
+def health():
+    return {"msg":"ok"}
+
 @router.post("")
 async def create(
     payload : CreateSubscriptionPayload,
