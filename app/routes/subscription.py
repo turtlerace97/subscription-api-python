@@ -21,7 +21,7 @@ def get_video_service(db: AsyncIOMotorClient = Depends(get_db)):
 
 @router.get("health")
 def health():
-    return {"msg":"hello"}
+    return {"msg":"ok"}
 
 @router.post("")
 async def create(
