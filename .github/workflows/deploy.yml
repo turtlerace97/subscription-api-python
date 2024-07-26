@@ -5,8 +5,9 @@ on:
     branches: [main]
 
 env:
-  DOCKER_IMAGE: soonyubing555/seerealbox-feeds
-  VERSION: ${{ github.sha }}
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: your-ecr-repo-name
+  IMAGE_TAG: ${{ github.sha }}
   NAME: feeds
 
 jobs:
@@ -25,23 +26,28 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ env.VERSION }}
+          key: ${{ runner.os }}-buildx-${{ env.IMAGE_TAG }}
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v1
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          builder: ${{ steps.buildx.outputs.name }}
-          push: true
-          tags: ${{ env.DOCKER_IMAGE }}:${{ env.VERSION }}
+      - name: Login to Amazon ECR
+        id: ecr-login
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+
+      - name: Build and push to ECR
+        id: build-and-push
+        run: |
+          docker build -t ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} .
+          docker tag ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
 
   deploy:
     needs: build
@@ -56,8 +62,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+            docker login -u AWS -p $(aws ecr get-login-password --region ${{ env.AWS_REGION }}) ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
             docker stop ${{ env.NAME }} || true
             docker rm ${{ env.NAME }} || true
-            docker pull ${{ env.DOCKER_IMAGE }}:${{ env.VERSION }}
-            docker run -d -p 8181:8181 --name ${{ env.NAME }} --restart always ${{ env.DOCKER_IMAGE }}:${{ env.VERSION }}
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            docker run -d -p 8181:8181 --name ${{ env.NAME }} --restart always ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
