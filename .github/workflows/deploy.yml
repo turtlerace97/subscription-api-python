@@ -49,7 +49,7 @@ jobs:
           docker tag ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
 
-  deploy:
+    deploy:
     needs: build
     name: Deploy
     runs-on: ubuntu-latest
@@ -62,10 +62,25 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
+            # Ensure AWS CLI and Docker are installed
+            if ! command -v aws &> /dev/null; then
+              sudo apt-get update
+              sudo apt-get install -y awscli
+            fi
+            if ! command -v docker &> /dev/null; then
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
+            fi
+
+            # Login to ECR
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
-            if docker inspect feeds &>/dev/null; then
+            
+            # Stop and remove the existing container
+            if docker inspect feeds &> /dev/null; then
               docker stop feeds
               docker rm feeds
             fi
+
+            # Pull the new image and run the container
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
             docker run -d -p 8181:8181 --name feeds --restart always ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
