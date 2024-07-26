@@ -62,7 +62,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+            docker login -u AWS -p ${{ secrets.AWS_PASSWORD }} ${{ secrets.AWS_ACCOUNT_ID }}>.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
             if docker inspect feeds &>/dev/null; then
               docker stop feeds
               docker rm feeds
