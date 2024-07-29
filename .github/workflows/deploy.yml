@@ -77,6 +77,36 @@ jobs:
             aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
             aws configure set default.region ${{ env.AWS_REGION }}
 
+            # Fetch secrets from AWS Secrets Manager
+            secret_json=$(aws secretsmanager get-secret-value --secret-id your-secret-id --query SecretString --output text)
+
+            # Extract individual secrets and export them as environment variables
+            export JWT_KEY=$(echo $secret_json | jq -r .jwt_key)
+            export JWT_OLD_KEY=$(echo $secret_json | jq -r .jwt_old_key)
+            export JWT_ALGORITHM=$(echo $secret_json | jq -r .jwt_algorithm)
+            export REDIS_HOST=$(echo $secret_json | jq -r .redis_host)
+            export MONGO_URL=$(echo $secret_json | jq -r .mongo_url)
+            export SLACK_TOKEN=$(echo $secret_json | jq -r .slack_token)
+            export AWS_REGION=$(echo $secret_json | jq -r .aws_region)
+            export AWS_BUCKET=$(echo $secret_json | jq -r .aws_bucket)
+            export AWS_ACCESS_KEY_ID=$(echo $secret_json | jq -r .aws_access_key_id)
+            export AWS_SECRET_ACCESS_KEY=$(echo $secret_json | jq -r .aws_secret_access_key)
+            export FIREBASE_TYPE=$(echo $secret_json | jq -r .firebase_type)
+            export FIREBASE_PROJECT_ID=$(echo $secret_json | jq -r .firebase_project_id)
+            export FIREBASE_PRIVATE_KEY_ID=$(echo $secret_json | jq -r .firebase_private_key_id)
+            export FIREBASE_PRIVATE_KEY=$(echo $secret_json | jq -r .firebase_private_key | sed 's/\\n/\n/g')
+            export FIREBASE_CLIENT_EMAIL=$(echo $secret_json | jq -r .firebase_client_email)
+            export FIREBASE_CLIENT_ID=$(echo $secret_json | jq -r .firebase_client_id)
+            export FIREBASE_AUTH_URI=$(echo $secret_json | jq -r .firebase_auth_uri)
+            export FIREBASE_TOKEN_URI=$(echo $secret_json | jq -r .firebase_token_uri)
+            export FIREBASE_AUTH_PROVIDER_CERT_URL=$(echo $secret_json | jq -r .firebase_auth_provider_cert_url)
+            export FIREBASE_CLIENT_CERT_URL=$(echo $secret_json | jq -r .firebase_client_cert_url)
+            export NAVER_CLOUD_ACCESS_KEY=$(echo $secret_json | jq -r .NAVER_CLOUD_ACCESS_KEY)
+            export NAVER_CLOUD_SECRET_KEY=$(echo $secret_json | jq -r .NAVER_CLOUD_SECRET_KEY)
+            export NAVER_CLOUD_SMS_SERVICE_ID=$(echo $secret_json | jq -r .NAVER_CLOUD_SMS_SERVICE_ID)
+            export S3_FILE_PATH=$(echo $secret_json | jq -r .S3_FILE_PATH)
+            export S3_UPDATE_API=$(echo $secret_json | jq -r .S3_UPDATE_API)
+
             # Login to ECR
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
 
@@ -86,6 +116,32 @@ jobs:
               docker rm feeds
             fi
 
-            # Pull the new image and run the container
+            # Pull the new image and run the container with environment variables
             docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
-            docker run -d -p 8181:8181 --name feeds --restart always ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+            docker run -d -p 8181:8181 --name feeds --restart always \
+              -e JWT_KEY=$JWT_KEY \
+              -e JWT_OLD_KEY=$JWT_OLD_KEY \
+              -e JWT_ALGORITHM=$JWT_ALGORITHM \
+              -e REDIS_HOST=$REDIS_HOST \
+              -e MONGO_URL=$MONGO_URL \
+              -e SLACK_TOKEN=$SLACK_TOKEN \
+              -e AWS_REGION=$AWS_REGION \
+              -e AWS_BUCKET=$AWS_BUCKET \
+              -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+              -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+              -e FIREBASE_TYPE=$FIREBASE_TYPE \
+              -e FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID \
+              -e FIREBASE_PRIVATE_KEY_ID=$FIREBASE_PRIVATE_KEY_ID \
+              -e FIREBASE_PRIVATE_KEY="$FIREBASE_PRIVATE_KEY" \
+              -e FIREBASE_CLIENT_EMAIL=$FIREBASE_CLIENT_EMAIL \
+              -e FIREBASE_CLIENT_ID=$FIREBASE_CLIENT_ID \
+              -e FIREBASE_AUTH_URI=$FIREBASE_AUTH_URI \
+              -e FIREBASE_TOKEN_URI=$FIREBASE_TOKEN_URI \
+              -e FIREBASE_AUTH_PROVIDER_CERT_URL=$FIREBASE_AUTH_PROVIDER_CERT_URL \
+              -e FIREBASE_CLIENT_CERT_URL=$FIREBASE_CLIENT_CERT_URL \
+              -e NAVER_CLOUD_ACCESS_KEY=$NAVER_CLOUD_ACCESS_KEY \
+              -e NAVER_CLOUD_SECRET_KEY=$NAVER_CLOUD_SECRET_KEY \
+              -e NAVER_CLOUD_SMS_SERVICE_ID=$NAVER_CLOUD_SMS_SERVICE_ID \
+              -e S3_FILE_PATH=$S3_FILE_PATH \
+              -e S3_UPDATE_API=$S3_UPDATE_API \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}

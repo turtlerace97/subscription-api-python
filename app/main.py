@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from app.conf.config import conf
 import uvicorn
 
 from app.conf.config import Config
@@ -20,7 +21,7 @@ app.add_event_handler("shutdown", close_db_connection)
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return conf.app_settings
 
 app.include_router(
     subscription.router, 
