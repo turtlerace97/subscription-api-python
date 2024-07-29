@@ -106,6 +106,9 @@ jobs:
             export NAVER_CLOUD_SMS_SERVICE_ID=$(echo $secret_json | jq -r .NAVER_CLOUD_SMS_SERVICE_ID)
             export S3_FILE_PATH=$(echo $secret_json | jq -r .S3_FILE_PATH)
             export S3_UPDATE_API=$(echo $secret_json | jq -r .S3_UPDATE_API)
+            export DB_NAME=$(echo $secret_json | jq -r .db_name)
+            export MONGO_USER=$(echo $secret_json | jq -r .db_username)
+            export MONGO_PASSWORD=$(echo $secret_json | jq -r .db_password)
 
             # Login to ECR
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
@@ -144,4 +147,7 @@ jobs:
               -e NAVER_CLOUD_SMS_SERVICE_ID=$NAVER_CLOUD_SMS_SERVICE_ID \
               -e S3_FILE_PATH=$S3_FILE_PATH \
               -e S3_UPDATE_API=$S3_UPDATE_API \
+              -e DB_NAME=$DB_NAME \
+              -e MONGO_USER=$MONGO_USER \
+              -e MONGO_PASSWORD=$MONGO_PASSWORD \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
