@@ -69,7 +69,8 @@ jobs:
             fi
             if ! command -v docker &> /dev/null; then
               curl -fsSL https://get.docker.com -o get-docker.sh
-              sh get-docker.sh
+              chmod +x get-docker.sh
+              sudo sh get-docker.sh
             fi
 
             # Configure AWS CLI with access keys
