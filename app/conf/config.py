@@ -42,4 +42,6 @@ class Config:
             else:
                 logging.info(f'Config variable {k} is {v}')
 
+        print(conf.app_settings)
+
 conf = Config()
