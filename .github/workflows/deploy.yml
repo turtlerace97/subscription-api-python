@@ -79,7 +79,7 @@ jobs:
             aws configure set default.region ${{ env.AWS_REGION }}
 
             # Fetch secrets from AWS Secrets Manager
-            secret_json=$(aws secretsmanager get-secret-value --secret-id your-secret-id --query SecretString --output text)
+            secret_json=$(aws secretsmanager get-secret-value --secret-id secret-value --query SecretString --output text)
 
             # Extract individual secrets and export them as environment variables
             export JWT_KEY=$(echo $secret_json | jq -r .jwt_key)
